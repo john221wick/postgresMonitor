@@ -1,0 +1,9 @@
+build/
+release/
+cmd/desktop/build/
+cmd/desktop/frontend/dist/
+frontend/dist/
+frontend/node_modules/
+*.app
+.DS_Store
+Makefile
