@@ -30,6 +30,30 @@ export function GetSavedNodes() {
   return window['go']['desktop']['App']['GetSavedNodes']();
 }
 
+export function PgDatabases(arg1, arg2) {
+  return window['go']['desktop']['App']['PgDatabases'](arg1, arg2);
+}
+
+export function PgDeleteRow(arg1, arg2) {
+  return window['go']['desktop']['App']['PgDeleteRow'](arg1, arg2);
+}
+
+export function PgInsertRow(arg1, arg2) {
+  return window['go']['desktop']['App']['PgInsertRow'](arg1, arg2);
+}
+
+export function PgRows(arg1, arg2) {
+  return window['go']['desktop']['App']['PgRows'](arg1, arg2);
+}
+
+export function PgTables(arg1, arg2) {
+  return window['go']['desktop']['App']['PgTables'](arg1, arg2);
+}
+
+export function PgUpdateCell(arg1, arg2) {
+  return window['go']['desktop']['App']['PgUpdateCell'](arg1, arg2);
+}
+
 export function ReconnectNode(arg1) {
   return window['go']['desktop']['App']['ReconnectNode'](arg1);
 }

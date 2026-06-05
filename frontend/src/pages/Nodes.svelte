@@ -448,7 +448,7 @@
 				Are you sure you want to disconnect <span class="font-[JetBrains_Mono,monospace] text-[12px]" style="color: var(--text-secondary);">{confirmDisconnect}</span>?
 			</p>
 			<p class="text-[12px]" style="color: var(--text-muted);">
-				The remote agent will keep running. You can reconnect later.
+				The remote agent will be stopped and its binary removed from the server. Reconnecting redeploys it.
 			</p>
 			<div class="flex justify-end gap-2 pt-1">
 				<button

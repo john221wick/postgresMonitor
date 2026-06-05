@@ -19,7 +19,13 @@ import {
 	ResizeTerminal,
 	StopTerminalSession,
 	GetClusterMonitor,
-	GetLocalMonitor
+	GetLocalMonitor,
+	PgDatabases,
+	PgTables,
+	PgRows,
+	PgDeleteRow,
+	PgInsertRow,
+	PgUpdateCell
 } from '../../wailsjs/go/desktop/App.js';
 
 export {
@@ -38,5 +44,11 @@ export {
 	ResizeTerminal,
 	StopTerminalSession,
 	GetClusterMonitor,
-	GetLocalMonitor
+	GetLocalMonitor,
+	PgDatabases,
+	PgTables,
+	PgRows,
+	PgDeleteRow,
+	PgInsertRow,
+	PgUpdateCell
 };

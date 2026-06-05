@@ -10,3 +10,12 @@ func writeJSON(w http.ResponseWriter, status int, v interface{}) {
 	w.WriteHeader(status)
 	json.NewEncoder(w).Encode(v)
 }
+
+func writeErr(w http.ResponseWriter, status int, err error) {
+	writeJSON(w, status, ErrorResponse{Error: err.Error()})
+}
+
+func decodeJSON(r *http.Request, v interface{}) error {
+	defer r.Body.Close()
+	return json.NewDecoder(r.Body).Decode(v)
+}

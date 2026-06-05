@@ -56,7 +56,10 @@ func main() {
 		os.Exit(0)
 	}()
 
-	addr := fmt.Sprintf(":%d", port)
+	// Bind loopback only: the desktop reaches the agent through an SSH tunnel
+	// (which dials the remote's localhost), so there is no reason to expose
+	// these endpoints — especially the DB read/write ones — on a public interface.
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
 	if err := srv.ListenAndServe(addr); err != nil {
 		fmt.Fprintf(os.Stderr, "agent server error: %v\n", err)
 		os.Exit(1)

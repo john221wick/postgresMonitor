@@ -5,6 +5,7 @@
 	import Settings from './pages/Settings.svelte';
 	import Terminal from './pages/Terminal.svelte';
 	import Monitor from './pages/Monitor.svelte';
+	import Database from './pages/Database.svelte';
 	import postgresLogo from './lib/assets/postgres.png';
 
 	let page = $state('dashboard');
@@ -14,12 +15,12 @@
 	let paletteOpen = $state(false);
 	let query = $state('');
 	let paletteInput = $state(null);
-	let isFullscreen = $state(false);
 
 	const routes = {
 		'': 'dashboard',
 		dashboard: 'dashboard',
 		monitor: 'monitor',
+		database: 'database',
 		terminal: 'terminal',
 		settings: 'settings'
 	};
@@ -27,6 +28,7 @@
 	const titles = {
 		dashboard: 'Dashboard',
 		monitor: 'Monitor',
+		database: 'Database',
 		terminal: 'Terminal',
 		settings: 'Settings'
 	};
@@ -35,6 +37,7 @@
 		dashboard:
 			'<rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/>',
 		monitor: '<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',
+		database: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14a9 3 0 0 0 18 0V5"/><path d="M3 12a9 3 0 0 0 18 0"/>',
 		terminal: '<polyline points="4 17 10 11 4 5"/><line x1="12" y1="19" x2="20" y2="19"/>',
 		settings:
 			'<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/>',
@@ -62,9 +65,6 @@
 
 		try {
 			remoteMode = await GetRemoteMode();
-		} catch {}
-		try {
-			if (window.runtime) isFullscreen = await window.runtime.WindowIsFullscreen();
 		} catch {}
 
 		handleHash();
@@ -103,14 +103,6 @@
 		applyTheme();
 	}
 
-	function toggleFullscreen() {
-		const rt = window.runtime;
-		if (!rt) return;
-		if (isFullscreen) rt.WindowUnfullscreen();
-		else rt.WindowFullscreen();
-		isFullscreen = !isFullscreen;
-	}
-
 	function toggleSidebar() {
 		collapsed = !collapsed;
 		localStorage.setItem('sidebarCollapsed', collapsed ? '1' : '0');
@@ -135,7 +127,10 @@
 					{ label: null, items: [{ route: 'dashboard', label: 'Dashboard', icon: 'dashboard' }] },
 					{
 						label: 'Cluster',
-						items: [{ route: 'monitor', label: 'Monitor', icon: 'monitor' }]
+						items: [
+							{ route: 'monitor', label: 'Monitor', icon: 'monitor' },
+							{ route: 'database', label: 'Database', icon: 'database' }
+						]
 					},
 					{
 						label: 'Tools',
@@ -146,7 +141,10 @@
 					{ label: null, items: [{ route: 'dashboard', label: 'Dashboard', icon: 'dashboard' }] },
 					{
 						label: 'System',
-						items: [{ route: 'monitor', label: 'Monitor', icon: 'monitor' }]
+						items: [
+							{ route: 'monitor', label: 'Monitor', icon: 'monitor' },
+							{ route: 'database', label: 'Database', icon: 'database' }
+						]
 					}
 				]
 	);
@@ -342,22 +340,6 @@
 				{@render icon('search', 16)}
 			</button>
 			<button
-				onclick={toggleFullscreen}
-				title="Toggle fullscreen"
-				class="grid place-items-center w-7 h-7 rounded-md cursor-pointer transition-colors"
-				style="color: var(--text-tertiary);"
-				onmouseenter={(e) => {
-					e.currentTarget.style.background = 'var(--hover-bg)';
-					e.currentTarget.style.color = 'var(--text-primary)';
-				}}
-				onmouseleave={(e) => {
-					e.currentTarget.style.background = 'transparent';
-					e.currentTarget.style.color = 'var(--text-tertiary)';
-				}}
-			>
-				{@render icon(isFullscreen ? 'shrink' : 'expand', 16)}
-			</button>
-			<button
 				onclick={toggleTheme}
 				title="Toggle theme"
 				class="grid place-items-center w-7 h-7 rounded-md cursor-pointer transition-colors"
@@ -380,6 +362,8 @@
 				<Dashboard {remoteMode} {onModeChange} />
 			{:else if page === 'monitor'}
 				<Monitor {remoteMode} />
+			{:else if page === 'database'}
+				<Database {remoteMode} />
 			{:else if page === 'settings'}
 				<Settings {dark} {toggleTheme} {remoteMode} />
 			{/if}

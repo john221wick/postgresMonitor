@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 type AgentServer struct {
@@ -38,6 +39,98 @@ func NewAgentServer(dir string) (*AgentServer, error) {
 	})
 	mux.HandleFunc("GET /status", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, StatusResponse{Jobs: []JobStatusResponse{}})
+	})
+
+	// --- Postgres browse (read-only) ---
+	mux.HandleFunc("POST /pg/databases", func(w http.ResponseWriter, r *http.Request) {
+		var req PgConnReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		dbs, err := PgListDatabases(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, dbs)
+	})
+	mux.HandleFunc("POST /pg/tables", func(w http.ResponseWriter, r *http.Request) {
+		var req PgConnReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 10*time.Second)
+		defer cancel()
+		tables, err := PgListTables(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, tables)
+	})
+	mux.HandleFunc("POST /pg/rows", func(w http.ResponseWriter, r *http.Request) {
+		var req PgRowsReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		page, err := PgQueryRows(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, page)
+	})
+	mux.HandleFunc("POST /pg/delete", func(w http.ResponseWriter, r *http.Request) {
+		var req PgDeleteReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		n, err := PgDeleteRow(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int64{"affected": n})
+	})
+	mux.HandleFunc("POST /pg/insert", func(w http.ResponseWriter, r *http.Request) {
+		var req PgInsertReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		n, err := PgInsertRow(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int64{"affected": n})
+	})
+	mux.HandleFunc("POST /pg/update", func(w http.ResponseWriter, r *http.Request) {
+		var req PgUpdateReq
+		if err := decodeJSON(r, &req); err != nil {
+			writeErr(w, http.StatusBadRequest, err)
+			return
+		}
+		ctx, cancel := context.WithTimeout(r.Context(), 15*time.Second)
+		defer cancel()
+		n, err := PgUpdateCell(ctx, req)
+		if err != nil {
+			writeErr(w, http.StatusInternalServerError, err)
+			return
+		}
+		writeJSON(w, http.StatusOK, map[string]int64{"affected": n})
 	})
 
 	return &AgentServer{

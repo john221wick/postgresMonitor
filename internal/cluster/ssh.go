@@ -3,6 +3,7 @@ package cluster
 import (
 	"fmt"
 	"io"
+	"math/rand"
 	"net"
 	"os"
 	"os/exec"
@@ -296,6 +297,41 @@ func findProjectRoot(start string) string {
 	}
 }
 
+// FreeRemotePort returns a TCP port in [low, high] not currently listening on
+// the remote, avoiding collisions with services already running there.
+func (s *SSHSession) FreeRemotePort(low, high int) (int, error) {
+	if low >= high {
+		return 0, fmt.Errorf("invalid port range %d-%d", low, high)
+	}
+	// Collect ports already in LISTEN state (ss, falling back to netstat).
+	out, _ := s.RunCommand("ss -ltnH 2>/dev/null | awk '{print $4}' | sed 's/.*://' ; netstat -ltn 2>/dev/null | awk '{print $4}' | sed 's/.*://'")
+	used := map[int]bool{}
+	for _, line := range strings.Split(out, "\n") {
+		if p, err := strconv.Atoi(strings.TrimSpace(line)); err == nil {
+			used[p] = true
+		}
+	}
+	for i := 0; i < 50; i++ {
+		p := low + rand.Intn(high-low+1)
+		if !used[p] {
+			return p, nil
+		}
+	}
+	return 0, fmt.Errorf("no free port found in %d-%d", low, high)
+}
+
+// StopRemoteAgent kills the agent (via its pidfile) and deletes the deployed
+// binary, freeing the port. Best-effort; errors are ignored.
+func (s *SSHSession) StopRemoteAgent(baseDir string) {
+	if baseDir == "" {
+		baseDir = "~/postgresmonitor"
+	}
+	cmd := fmt.Sprintf(`d=$(eval echo %s); `+
+		`if [ -f "$d/agent.pid" ]; then kill "$(cat "$d/agent.pid")" 2>/dev/null || true; fi; `+
+		`rm -f "$d/pgmonitor" "$d/agent.pid" 2>/dev/null || true; echo cleaned`, baseDir)
+	s.RunCommand(cmd)
+}
+
 // StartRemoteAgent starts the monitor agent on the remote machine.
 func (s *SSHSession) StartRemoteAgent(port int, baseDir string) error {
 	pidFile := baseDir + "/agent.pid"
@@ -306,11 +342,12 @@ func (s *SSHSession) StartRemoteAgent(port int, baseDir string) error {
 		return fmt.Errorf("start remote agent: %w", err)
 	}
 
-	// Brief wait then verify
+	// Brief wait then verify — check the response is actually our agent
+	// (contains a known field) so a port-squatter can't pass as healthy.
 	time.Sleep(time.Second)
-	verifyCmd := fmt.Sprintf("curl -s localhost:%d/monitor > /dev/null 2>&1 && echo ok", port)
+	verifyCmd := fmt.Sprintf("curl -s localhost:%d/monitor 2>/dev/null", port)
 	out, err := s.RunCommand(verifyCmd)
-	if err != nil || !strings.Contains(out, "ok") {
+	if err != nil || !strings.Contains(out, "collectedAt") {
 		logOut, _ := s.RunCommand(fmt.Sprintf("cat %s/agent.log 2>/dev/null | tail -20", baseDir))
 		return fmt.Errorf("remote agent failed to start:\n%s", logOut)
 	}

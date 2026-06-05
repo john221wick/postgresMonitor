@@ -141,10 +141,15 @@ func (a *App) ConnectNode(sshCommand string, keyPath string) (NodeInfo, error) {
 	remoteBase := "~/postgresmonitor"
 	session.RunCommand(fmt.Sprintf("mkdir -p %s/logs", remoteBase))
 
-	agentPort := 9712
 	if err := session.CrossCompileAndSCP(remoteBase + "/pgmonitor"); err != nil {
 		session.Close()
 		return NodeInfo{}, fmt.Errorf("deploy agent failed: %w", err)
+	}
+
+	// Pick a free port on the remote to avoid colliding with existing services.
+	agentPort, err := session.FreeRemotePort(20000, 60000)
+	if err != nil {
+		agentPort = 47215 // fallback: uncommon fixed port
 	}
 
 	if err := session.StartRemoteAgent(agentPort, remoteBase); err != nil {
@@ -199,6 +204,7 @@ func (a *App) DisconnectNode(nodeID string) error {
 		return fmt.Errorf("remote mode not enabled")
 	}
 	if sess, ok := a.sshSessions[nodeID]; ok {
+		sess.StopRemoteAgent(a.remoteBaseFor(nodeID))
 		sess.Close()
 		delete(a.sshSessions, nodeID)
 	}
@@ -207,8 +213,20 @@ func (a *App) DisconnectNode(nodeID string) error {
 	return nil
 }
 
+// remoteBaseFor returns the remote install dir for a node, defaulting to the
+// install path used at connect time.
+func (a *App) remoteBaseFor(nodeID string) string {
+	if a.manager != nil {
+		if node, ok := a.manager.GetNode(nodeID); ok && node.RemoteDir != "" {
+			return node.RemoteDir
+		}
+	}
+	return "~/postgresmonitor"
+}
+
 func (a *App) RemoveNode(nodeID string) error {
 	if sess, ok := a.sshSessions[nodeID]; ok {
+		sess.StopRemoteAgent(a.remoteBaseFor(nodeID))
 		sess.Close()
 		delete(a.sshSessions, nodeID)
 	}

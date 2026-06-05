@@ -94,6 +94,198 @@ export namespace agentserver {
 	        this.perCoreCPU = source["perCoreCPU"];
 	    }
 	}
+	export class PgConnReq {
+	    host: string;
+	    port: number;
+	    user: string;
+	    password: string;
+	    db: string;
+	    sslMode: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgConnReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.db = source["db"];
+	        this.sslMode = source["sslMode"];
+	    }
+	}
+	export class PgDeleteReq {
+	    host: string;
+	    port: number;
+	    user: string;
+	    password: string;
+	    db: string;
+	    sslMode: string;
+	    schema: string;
+	    table: string;
+	    ctid: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgDeleteReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.db = source["db"];
+	        this.sslMode = source["sslMode"];
+	        this.schema = source["schema"];
+	        this.table = source["table"];
+	        this.ctid = source["ctid"];
+	    }
+	}
+	export class string {
+	
+	
+	    static createFrom(source: any = {}) {
+	        return new string(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	
+	    }
+	}
+	export class PgInsertReq {
+	    host: string;
+	    port: number;
+	    user: string;
+	    password: string;
+	    db: string;
+	    sslMode: string;
+	    schema: string;
+	    table: string;
+	    values: Record<string, string>;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgInsertReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.db = source["db"];
+	        this.sslMode = source["sslMode"];
+	        this.schema = source["schema"];
+	        this.table = source["table"];
+	        this.values = source["values"];
+	    }
+	}
+	export class PgPage {
+	    columns: string[];
+	    types: string[];
+	    rows: string[][];
+	    ctids: string[];
+	    hasMore: boolean;
+	    offset: number;
+	    limit: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgPage(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.columns = source["columns"];
+	        this.types = source["types"];
+	        this.rows = source["rows"];
+	        this.ctids = source["ctids"];
+	        this.hasMore = source["hasMore"];
+	        this.offset = source["offset"];
+	        this.limit = source["limit"];
+	    }
+	}
+	export class PgRowsReq {
+	    host: string;
+	    port: number;
+	    user: string;
+	    password: string;
+	    db: string;
+	    sslMode: string;
+	    schema: string;
+	    table: string;
+	    limit: number;
+	    offset: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgRowsReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.db = source["db"];
+	        this.sslMode = source["sslMode"];
+	        this.schema = source["schema"];
+	        this.table = source["table"];
+	        this.limit = source["limit"];
+	        this.offset = source["offset"];
+	    }
+	}
+	export class PgTable {
+	    schema: string;
+	    name: string;
+	    rows: number;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgTable(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.schema = source["schema"];
+	        this.name = source["name"];
+	        this.rows = source["rows"];
+	    }
+	}
+	export class PgUpdateReq {
+	    host: string;
+	    port: number;
+	    user: string;
+	    password: string;
+	    db: string;
+	    sslMode: string;
+	    schema: string;
+	    table: string;
+	    ctid: string;
+	    column: string;
+	    value?: string;
+	
+	    static createFrom(source: any = {}) {
+	        return new PgUpdateReq(source);
+	    }
+	
+	    constructor(source: any = {}) {
+	        if ('string' === typeof source) source = JSON.parse(source);
+	        this.host = source["host"];
+	        this.port = source["port"];
+	        this.user = source["user"];
+	        this.password = source["password"];
+	        this.db = source["db"];
+	        this.sslMode = source["sslMode"];
+	        this.schema = source["schema"];
+	        this.table = source["table"];
+	        this.ctid = source["ctid"];
+	        this.column = source["column"];
+	        this.value = source["value"];
+	    }
+	}
 	export class ProcInfo {
 	    pid: number;
 	    command: string;
