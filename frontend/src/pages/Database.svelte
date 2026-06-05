@@ -32,6 +32,7 @@
 	let rowsLoading = $state(false);
 	let limit = $state(50);
 	let offset = $state(0);
+	let sidebarOpen = $state(true);
 
 	// Mutations
 	let confirmDel = $state(null); // { ri, ctid }
@@ -45,6 +46,26 @@
 	let editValue = $state('');
 	let editNull = $state(false);
 	let updating = $state(false);
+
+	// Pick the right editor widget for the column type.
+	// Map a Postgres type name to an input widget kind.
+	function kindOf(type) {
+		const t = (type || '').toLowerCase();
+		if (t === 'bool' || t === 'boolean') return 'bool';
+		if (['int2', 'int4', 'int8', 'float4', 'float8', 'numeric', 'money', 'oid'].includes(t)) return 'number';
+		if (t === 'date') return 'date';
+		if (t.startsWith('timestamp')) return 'datetime';
+		return 'text';
+	}
+	// Returns an error message for a bad value, or '' if valid/empty.
+	function validateValue(kind, val) {
+		const s = String(val).trim();
+		if (s === '') return '';
+		if (kind === 'number' && !/^-?(\d+\.?\d*|\.\d+)(e-?\d+)?$/i.test(s)) return 'must be a number';
+		if (kind === 'bool' && !['true', 'false', 't', 'f', '1', '0'].includes(s.toLowerCase())) return 'must be true or false';
+		return '';
+	}
+	const editKind = $derived(kindOf(editCell?.type || ''));
 
 	const nodeName = $derived(
 		remoteMode ? nodes.find((n) => n.id === nodeId)?.name || nodeId || 'node' : 'local'
@@ -234,9 +255,17 @@
 	}
 	async function insertRow() {
 		const values = {};
-		for (const col of page?.columns || []) {
+		const cols = page?.columns || [];
+		for (let i = 0; i < cols.length; i++) {
+			const col = cols[i];
 			const v = newRow[col];
-			if (v !== undefined && v !== null && String(v).length > 0) values[col] = String(v);
+			if (v === undefined || v === null || String(v).length === 0) continue;
+			const verr = validateValue(kindOf(page.types?.[i] || ''), v);
+			if (verr) {
+				error = `${col}: ${verr}`;
+				return;
+			}
+			values[col] = String(v);
 		}
 		if (Object.keys(values).length === 0) {
 			error = 'Fill at least one column';
@@ -270,12 +299,22 @@
 			return;
 		}
 		const orig = page.rows[ri][ci];
-		editCell = { ri, ci, ctid, column: page.columns[ci], type: page.types?.[ci] || '', orig };
+		const type = page.types?.[ci] || '';
+		editCell = { ri, ci, ctid, column: page.columns[ci], type, orig };
 		editNull = orig === null;
-		editValue = orig === null ? '' : orig;
+		const t = type.toLowerCase();
+		if (t === 'bool' || t === 'boolean') editValue = orig === 'true' ? 'true' : 'false';
+		else editValue = orig === null ? '' : orig;
 	}
 	async function doUpdate() {
 		if (!editCell) return;
+		if (!editNull) {
+			const verr = validateValue(editKind, editValue);
+			if (verr) {
+				error = `${editCell.column}: ${verr}`;
+				return;
+			}
+		}
 		updating = true;
 		error = '';
 		try {
@@ -428,10 +467,14 @@
 		{/if}
 
 		<div class="flex-1 min-h-0 flex gap-3">
+			{#if sidebarOpen}
 			<!-- Sidebar -->
 			<div class="w-64 shrink-0 flex flex-col rounded-xl overflow-hidden" style="background: var(--bg-secondary); border: 1px solid var(--border);">
-				<div class="px-3 py-2 text-[10.5px] font-semibold uppercase tracking-wider shrink-0" style="color: var(--text-muted); border-bottom: 1px solid var(--border);">
-					Databases ({databases.length})
+				<div class="flex items-center justify-between px-3 py-2 shrink-0" style="border-bottom: 1px solid var(--border);">
+					<span class="text-[10.5px] font-semibold uppercase tracking-wider" style="color: var(--text-muted);">Databases ({databases.length})</span>
+					<button onclick={() => (sidebarOpen = false)} title="Hide panel" class="grid place-items-center w-5 h-5 rounded cursor-pointer" style="color: var(--text-muted);">
+						<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="11 17 6 12 11 7"/><polyline points="18 17 13 12 18 7"/></svg>
+					</button>
 				</div>
 				<div class="flex-1 min-h-0 overflow-y-auto">
 					{#each databases as db (db)}
@@ -467,6 +510,15 @@
 					{/each}
 				</div>
 			</div>
+			{:else}
+			<button onclick={() => (sidebarOpen = true)} title="Show databases panel"
+				class="shrink-0 w-9 flex flex-col items-center pt-2.5 rounded-xl cursor-pointer transition-colors"
+				style="background: var(--bg-secondary); border: 1px solid var(--border); color: var(--text-tertiary);"
+				onmouseenter={(e) => (e.currentTarget.style.color = 'var(--text-primary)')}
+				onmouseleave={(e) => (e.currentTarget.style.color = 'var(--text-tertiary)')}>
+				<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 17 18 12 13 7"/><polyline points="6 17 11 12 6 7"/></svg>
+			</button>
+			{/if}
 
 			<!-- Main -->
 			<div class="flex-1 min-w-0 flex flex-col rounded-xl overflow-hidden" style="background: var(--bg-secondary); border: 1px solid var(--border);">
@@ -518,11 +570,24 @@
 							</div>
 							<div class="flex flex-wrap gap-2">
 								{#each page.columns as col, i}
+									{@const k = kindOf(page.types?.[i] || '')}
 									<div class="flex flex-col gap-1">
 										<span class="text-[10px] font-[JetBrains_Mono,monospace]" style="color: var(--text-tertiary);">{col} <span style="color: var(--text-muted);">{page.types?.[i] || ''}</span></span>
-										<input bind:value={newRow[col]} spellcheck="false" autocomplete="off"
-											class="w-40 px-2 h-8 rounded text-[12px] font-[JetBrains_Mono,monospace] outline-none"
-											style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);" />
+										{#if k === 'bool'}
+											<select bind:value={newRow[col]} class="w-40 px-2 py-1.5 rounded text-[12px] outline-none cursor-pointer" style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);">
+												<option value="">(default)</option>
+												<option value="true">true</option>
+												<option value="false">false</option>
+											</select>
+										{:else if k === 'date'}
+											<input type="date" bind:value={newRow[col]} class="w-44 px-2 h-8 rounded text-[12px] font-[JetBrains_Mono,monospace] outline-none" style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);" />
+										{:else if k === 'datetime'}
+											<input type="datetime-local" step="1" bind:value={newRow[col]} class="w-52 px-2 h-8 rounded text-[12px] font-[JetBrains_Mono,monospace] outline-none" style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);" />
+										{:else if k === 'number'}
+											<input type="text" inputmode="decimal" bind:value={newRow[col]} placeholder="123" spellcheck="false" autocomplete="off" class="w-40 px-2 h-8 rounded text-[12px] font-[JetBrains_Mono,monospace] outline-none" style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);" />
+										{:else}
+											<input bind:value={newRow[col]} spellcheck="false" autocomplete="off" class="w-40 px-2 h-8 rounded text-[12px] font-[JetBrains_Mono,monospace] outline-none" style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border);" />
+										{/if}
 									</div>
 								{/each}
 							</div>
@@ -612,9 +677,21 @@
 			</div>
 			<div>
 				<div class="text-[10.5px] uppercase tracking-wider mb-1" style="color: var(--text-tertiary);">Value</div>
-				<textarea bind:value={editValue} disabled={editNull} rows="3" spellcheck="false"
-					class="w-full px-2.5 py-2 rounded-md text-[12.5px] font-[JetBrains_Mono,monospace] outline-none resize-y"
-					style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border); opacity: {editNull ? 0.5 : 1};"></textarea>
+				{#if editKind === 'bool'}
+					<label class="flex items-center gap-2.5 px-3 py-2.5 rounded-md w-fit cursor-pointer" style="background: var(--input-bg); border: 1px solid var(--border); opacity: {editNull ? 0.5 : 1};">
+						<input type="checkbox" class="cbx" checked={editValue === 'true'} disabled={editNull}
+							onchange={(e) => (editValue = e.currentTarget.checked ? 'true' : 'false')} />
+						<span class="text-[13px] font-[JetBrains_Mono,monospace]" style="color: var(--text-primary);">{editValue === 'true' ? 'true' : 'false'}</span>
+					</label>
+				{:else if editKind === 'number'}
+					<input type="text" inputmode="decimal" bind:value={editValue} disabled={editNull} spellcheck="false"
+						class="w-full px-2.5 h-9 rounded-md text-[13px] font-[JetBrains_Mono,monospace] outline-none"
+						style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border); opacity: {editNull ? 0.5 : 1};" />
+				{:else}
+					<textarea bind:value={editValue} disabled={editNull} rows="3" spellcheck="false"
+						class="w-full px-2.5 py-2 rounded-md text-[12.5px] font-[JetBrains_Mono,monospace] outline-none resize-y"
+						style="background: var(--input-bg); color: var(--text-primary); border: 1px solid var(--border); opacity: {editNull ? 0.5 : 1};"></textarea>
+				{/if}
 			</div>
 			<label class="flex items-center gap-2 text-[12px] cursor-pointer w-fit" style="color: var(--text-secondary);">
 				<input type="checkbox" class="cbx" bind:checked={editNull} />
