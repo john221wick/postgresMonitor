@@ -6,7 +6,6 @@
 	import Terminal from './pages/Terminal.svelte';
 	import Monitor from './pages/Monitor.svelte';
 	import Database from './pages/Database.svelte';
-	import postgresLogo from './lib/assets/postgres.png';
 
 	let page = $state('dashboard');
 	let dark = $state(true);
@@ -15,6 +14,8 @@
 	let paletteOpen = $state(false);
 	let query = $state('');
 	let paletteInput = $state(null);
+
+	const postgresLogo = '/posty.png';
 
 	const routes = {
 		'': 'dashboard',
