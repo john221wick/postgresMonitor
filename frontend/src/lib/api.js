@@ -25,7 +25,11 @@ import {
 	PgRows,
 	PgDeleteRow,
 	PgInsertRow,
-	PgUpdateCell
+	PgUpdateCell,
+	GetAppVersion,
+	CheckAppUpdate,
+	DownloadAndApplyUpdate,
+	UninstallDesktopApp
 } from '../../wailsjs/go/desktop/App.js';
 
 export {
@@ -50,5 +54,10 @@ export {
 	PgRows,
 	PgDeleteRow,
 	PgInsertRow,
-	PgUpdateCell
+	PgUpdateCell,
+	// App update / uninstall
+	GetAppVersion,
+	CheckAppUpdate,
+	DownloadAndApplyUpdate,
+	UninstallDesktopApp
 };

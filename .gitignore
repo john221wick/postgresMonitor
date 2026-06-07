@@ -1,6 +1,11 @@
-build/
+/build/
 release/
-cmd/desktop/build/
+# Wails desktop build dir: ignore generated output, but keep the Linux packaging
+# assets (hicolor icon tree + .desktop) which are committed source. The first
+# negation overrides a global "build/" ignore so the linux/ subtree is reachable.
+!cmd/desktop/build/
+cmd/desktop/build/*
+!cmd/desktop/build/linux/
 cmd/desktop/frontend/dist/
 frontend/dist/
 frontend/node_modules/

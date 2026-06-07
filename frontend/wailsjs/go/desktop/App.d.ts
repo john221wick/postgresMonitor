@@ -3,9 +3,15 @@
 import {desktop} from '../models';
 import {agentserver} from '../models';
 
+export function CheckAppUpdate():Promise<desktop.UpdateInfo>;
+
 export function ConnectNode(arg1:string,arg2:string):Promise<desktop.NodeInfo>;
 
 export function DisconnectNode(arg1:string):Promise<void>;
+
+export function DownloadAndApplyUpdate():Promise<void>;
+
+export function GetAppVersion():Promise<string>;
 
 export function GetClusterMonitor():Promise<Array<desktop.NodeMonitorInfo>>;
 
@@ -44,5 +50,7 @@ export function StartTerminalSession(arg1:string,arg2:number,arg3:number):Promis
 export function StopTerminalSession(arg1:string):Promise<void>;
 
 export function SyncFilesToNode(arg1:string,arg2:string):Promise<string>;
+
+export function UninstallDesktopApp():Promise<desktop.UninstallResult>;
 
 export function WriteTerminalInput(arg1:string,arg2:string):Promise<void>;

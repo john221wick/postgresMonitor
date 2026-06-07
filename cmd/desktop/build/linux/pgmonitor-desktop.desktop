@@ -1,0 +1,9 @@
+[Desktop Entry]
+Type=Application
+Name=Postgres Monitor
+Comment=Monitor and manage your PostgreSQL clusters
+Exec=pgmonitor-desktop
+Icon=pgmonitor-desktop
+Terminal=false
+Categories=Development;Database;Utility;
+StartupWMClass=pgmonitor-desktop
