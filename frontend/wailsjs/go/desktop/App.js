@@ -10,20 +10,16 @@ export function ConnectNode(arg1, arg2) {
   return window['go']['desktop']['App']['ConnectNode'](arg1, arg2);
 }
 
+export function DisconnectNode(arg1) {
+  return window['go']['desktop']['App']['DisconnectNode'](arg1);
+}
+
 export function DownloadAndApplyUpdate() {
   return window['go']['desktop']['App']['DownloadAndApplyUpdate']();
 }
 
 export function GetAppVersion() {
   return window['go']['desktop']['App']['GetAppVersion']();
-}
-
-export function UninstallDesktopApp() {
-  return window['go']['desktop']['App']['UninstallDesktopApp']();
-}
-
-export function DisconnectNode(arg1) {
-  return window['go']['desktop']['App']['DisconnectNode'](arg1);
 }
 
 export function GetClusterMonitor() {
@@ -100,6 +96,10 @@ export function StopTerminalSession(arg1) {
 
 export function SyncFilesToNode(arg1, arg2) {
   return window['go']['desktop']['App']['SyncFilesToNode'](arg1, arg2);
+}
+
+export function UninstallDesktopApp() {
+  return window['go']['desktop']['App']['UninstallDesktopApp']();
 }
 
 export function WriteTerminalInput(arg1, arg2) {

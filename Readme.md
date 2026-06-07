@@ -2,6 +2,18 @@
 
 Desktop GUI app to monitor and manage PostgreSQL — local or over SSH. Connects to a remote box over SSH, ships a small loopback-only agent, and talks to it through an SSH tunnel (agent never exposed to the internet).
 
+
+## Install
+
+macOS and Linux:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/john221wick/postgresMonitor/main/install.sh | bash
+```
+
+Installs the latest desktop app.
+
+
 ## What it does
 
 **Database browser**
@@ -47,16 +59,6 @@ Desktop GUI app to monitor and manage PostgreSQL — local or over SSH. Connects
 - Dashboard, monitor, database, terminal, settings pages.
 - Dark/light theme toggle.
 - Settings: theme, path preference, app update, uninstall.
-
-## Install
-
-macOS and Linux:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/john221wick/postgresMonitor/main/install.sh | bash
-```
-
-Installs the latest desktop app.
 
 ## Docs
 

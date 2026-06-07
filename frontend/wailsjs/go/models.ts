@@ -394,11 +394,11 @@ export namespace desktop {
 	export class UninstallResult {
 	    status: string;
 	    message: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new UninstallResult(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.status = source["status"];
@@ -410,11 +410,11 @@ export namespace desktop {
 	    latest: string;
 	    available: boolean;
 	    notes: string;
-
+	
 	    static createFrom(source: any = {}) {
 	        return new UpdateInfo(source);
 	    }
-
+	
 	    constructor(source: any = {}) {
 	        if ('string' === typeof source) source = JSON.parse(source);
 	        this.current = source["current"];
