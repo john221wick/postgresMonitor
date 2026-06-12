@@ -47,6 +47,9 @@
 	let editNull = $state(false);
 	let updating = $state(false);
 
+	// JSON viewer
+	let jsonView = $state(null); // { column, obj }
+
 	// Pick the right editor widget for the column type.
 	// Map a Postgres type name to an input widget kind.
 	function kindOf(type) {
@@ -304,7 +307,13 @@
 		editNull = orig === null;
 		const t = type.toLowerCase();
 		if (t === 'bool' || t === 'boolean') editValue = orig === 'true' ? 'true' : 'false';
-		else editValue = orig === null ? '' : orig;
+		else if ((t === 'json' || t === 'jsonb') && orig != null) {
+			try {
+				editValue = JSON.stringify(JSON.parse(orig), null, 2);
+			} catch {
+				editValue = orig;
+			}
+		} else editValue = orig === null ? '' : orig;
 	}
 	async function doUpdate() {
 		if (!editCell) return;
@@ -334,6 +343,43 @@
 		} finally {
 			updating = false;
 		}
+	}
+
+	// --- JSON viewer ---
+	// Returns the parsed object/array if the cell is JSON, else undefined.
+	function jsonCell(cell, type) {
+		if (cell == null) return undefined;
+		const t = (type || '').toLowerCase();
+		const s = String(cell).trim();
+		if (t !== 'json' && t !== 'jsonb' && !s.startsWith('{') && !s.startsWith('[')) return undefined;
+		try {
+			const v = JSON.parse(s);
+			if (v && typeof v === 'object') return v;
+		} catch {}
+		return undefined;
+	}
+	function openJson(column, obj) {
+		jsonView = { column, obj };
+	}
+	// Pretty-print + light syntax highlighting (HTML-escaped first → safe).
+	function hlJson(obj) {
+		let s = JSON.stringify(obj, null, 2);
+		s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+		return s.replace(
+			/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+-]?\d+)?)/g,
+			(m) => {
+				let cls = 'num';
+				if (/^"/.test(m)) cls = /:$/.test(m) ? 'key' : 'str';
+				else if (/true|false/.test(m)) cls = 'bool';
+				else if (/null/.test(m)) cls = 'nul';
+				return `<span class="j-${cls}">${m}</span>`;
+			}
+		);
+	}
+	async function copyJson() {
+		try {
+			await navigator.clipboard.writeText(JSON.stringify(jsonView.obj, null, 2));
+		} catch {}
 	}
 
 	function onFormKey(e) {
@@ -620,10 +666,19 @@
 												<input type="checkbox" class="cbx" checked={sel} onchange={() => toggleRow(ctid)} disabled={!ctid} />
 											</td>
 											{#each row as cell, ci (ci)}
+												{@const jv = jsonCell(cell, page.types?.[ci])}
 												<td class="px-3 py-1.5 text-[12px] font-[JetBrains_Mono,monospace] whitespace-nowrap cell" style="color: var(--text-primary);"
 													ondblclick={() => openEditCell(ri, ci)} title="Double-click to edit">
 													{#if cell === null}
 														<span class="italic" style="color: var(--text-muted);">NULL</span>
+													{:else if jv !== undefined}
+														<span class="inline-flex items-center gap-1.5 align-middle">
+															<button onclick={(e) => { e.stopPropagation(); openJson(page.columns[ci], jv); }} title="View JSON"
+																class="shrink-0 grid place-items-center w-5 h-5 rounded cursor-pointer" style="background: var(--bg-tertiary); color: var(--accent);">
+																<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H7a2 2 0 0 0-2 2v5a2 2 0 0 1-2 2 2 2 0 0 1 2 2v5c0 1.1.9 2 2 2h1"/><path d="M16 3h1a2 2 0 0 1 2 2v5a2 2 0 0 0 2 2 2 2 0 0 0-2 2v5a2 2 0 0 1-2 2h-1"/></svg>
+															</button>
+															<span class="inline-block max-w-[320px] truncate align-bottom" style="color: var(--text-tertiary);">{cell}</span>
+														</span>
 													{:else}
 														<span class="inline-block max-w-[420px] truncate align-bottom">{cell}</span>
 													{/if}
@@ -708,6 +763,27 @@
 	</div>
 {/if}
 
+<!-- JSON viewer -->
+{#if jsonView}
+	<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 z-50 flex items-center justify-center p-6" style="background: rgba(0,0,0,0.5);" onclick={() => (jsonView = null)}>
+		<!-- svelte-ignore a11y_click_events_have_key_events a11y_no_static_element_interactions -->
+		<div class="rounded-lg w-[640px] max-w-full max-h-[80vh] flex flex-col shadow-xl" style="background: var(--bg-secondary); border: 1px solid var(--border);" onclick={(e) => e.stopPropagation()}>
+			<div class="flex items-center justify-between px-4 py-3 shrink-0" style="border-bottom: 1px solid var(--border);">
+				<div class="flex items-center gap-2 min-w-0">
+					<span class="text-[13px] font-semibold font-[JetBrains_Mono,monospace] truncate" style="color: var(--text-primary);">{jsonView.column}</span>
+					<span class="text-[10.5px] uppercase tracking-wider" style="color: var(--text-muted);">JSON</span>
+				</div>
+				<div class="flex items-center gap-2 shrink-0">
+					<button onclick={copyJson} class="px-2.5 h-7 rounded text-[12px] font-medium cursor-pointer" style="background: var(--bg-tertiary); color: var(--text-secondary);">Copy</button>
+					<button onclick={() => (jsonView = null)} class="px-2.5 h-7 rounded text-[12px] font-medium cursor-pointer" style="background: var(--bg-tertiary); color: var(--text-secondary);">Close</button>
+				</div>
+			</div>
+			<pre class="flex-1 overflow-auto m-0 px-4 py-3 text-[12px] leading-[1.5] font-[JetBrains_Mono,monospace]" style="color: var(--text-primary);">{@html hlJson(jsonView.obj)}</pre>
+		</div>
+	</div>
+{/if}
+
 <style>
 	input[type='checkbox'].cbx {
 		appearance: none;
@@ -750,5 +826,20 @@
 	}
 	td.cell:hover {
 		background: var(--hover-bg);
+	}
+	:global(.j-key) {
+		color: #79c0ff;
+	}
+	:global(.j-str) {
+		color: #a5d6ff;
+	}
+	:global(.j-num) {
+		color: #f0883e;
+	}
+	:global(.j-bool) {
+		color: #d2a8ff;
+	}
+	:global(.j-nul) {
+		color: var(--text-muted);
 	}
 </style>
