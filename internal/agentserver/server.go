@@ -14,6 +14,7 @@ type AgentServer struct {
 	httpServer *http.Server
 	listener   net.Listener
 	dataDir    string
+	sampler    *Sampler
 }
 
 // NewAgentServer creates a lightweight monitor agent (host + Docker).
@@ -30,9 +31,15 @@ func NewAgentServer(dir string) (*AgentServer, error) {
 		return nil, fmt.Errorf("create dirs: %w", err)
 	}
 
+	sampler := NewSampler()
+	sampler.Start()
+
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /monitor", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, CollectMonitor())
+		writeJSON(w, http.StatusOK, sampler.Latest())
+	})
+	mux.HandleFunc("GET /monitor/history", func(w http.ResponseWriter, r *http.Request) {
+		writeJSON(w, http.StatusOK, sampler.History())
 	})
 	mux.HandleFunc("GET /topology", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, TopologyResponse{OK: true})
@@ -136,6 +143,7 @@ func NewAgentServer(dir string) (*AgentServer, error) {
 	return &AgentServer{
 		httpServer: &http.Server{Handler: mux},
 		dataDir:    dataDir,
+		sampler:    sampler,
 	}, nil
 }
 
@@ -154,5 +162,6 @@ func (s *AgentServer) Handler() http.Handler {
 }
 
 func (s *AgentServer) Shutdown(ctx context.Context) error {
+	s.sampler.Stop()
 	return s.httpServer.Shutdown(ctx)
 }

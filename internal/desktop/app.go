@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"sync"
 
 	"github.com/john221wick/postgresMonitor/internal/agentserver"
 	"github.com/john221wick/postgresMonitor/internal/cluster"
@@ -17,6 +18,9 @@ type App struct {
 	manager     *cluster.NodeManager
 	sshSessions map[string]*cluster.SSHSession
 	savedNodes  map[string]*SavedNode
+
+	localSampler *agentserver.Sampler
+	samplerOnce  sync.Once
 }
 
 func NewApp() *App {
@@ -32,6 +36,9 @@ func (a *App) Startup(ctx context.Context) {
 }
 
 func (a *App) Shutdown(ctx context.Context) {
+	if a.localSampler != nil {
+		a.localSampler.Stop()
+	}
 	if a.manager != nil {
 		a.manager.Stop()
 	}
@@ -352,7 +359,11 @@ func (a *App) GetClusterMonitor() []NodeMonitorInfo {
 }
 
 func (a *App) GetLocalMonitor() []NodeMonitorInfo {
-	mon := agentserver.CollectMonitor()
+	a.samplerOnce.Do(func() {
+		a.localSampler = agentserver.NewSampler()
+		a.localSampler.Start()
+	})
+	mon := a.localSampler.Latest()
 	hostname, _ := os.Hostname()
 	if hostname == "" {
 		hostname = "local"

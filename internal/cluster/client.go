@@ -71,8 +71,10 @@ func (c *httpAgentClient) GetMonitor() (*agentserver.MonitorResponse, error) {
 	return &result, nil
 }
 
+// Ping hits /status, which is cheap — /monitor would trigger a full
+// stats collection on the agent for every heartbeat.
 func (c *httpAgentClient) Ping() error {
-	resp, err := c.httpClient.Get(c.baseURL + "/monitor")
+	resp, err := c.httpClient.Get(c.baseURL + "/status")
 	if err != nil {
 		return err
 	}
